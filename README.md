@@ -48,10 +48,7 @@ PLC 返回完成信号，前端显示完成提示
 yolo11_local
 ├── main.py
 ├── frontend_vision_plc_video.html
-├── realtime_test.py
-├── vision_plc_backend_video.py
 ├── README.md
-├── README_模块化说明.txt
 ├── .gitignore
 ├── .gitattributes
 │
@@ -103,9 +100,7 @@ yolo11_local
 | 文件 | 作用 |
 |---|---|
 | `main.py` | 模块化程序入口，推荐运行该文件 |
-| `vision_plc_backend_video.py` | 早期单文件版本，作为备份保留 |
 | `frontend_vision_plc_video.html` | 前端网页界面 |
-| `realtime_test.py` | 摄像头 / YOLO 实时检测测试文件 |
 
 推荐使用：
 
