@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能制造工站视觉出入库系统</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        :root {
+            --content-height: max(760px, calc(100vh - 120px));
+            --border: rgba(203, 213, 225, 0.82);
+            --shadow: 0 14px 38px rgba(15, 23, 42, 0.08);
+            --blue: #2563eb;
+            --green: #16a34a;
+            --red: #ef4444;
+            --text-main: #0f172a;
+            --text-sub: #64748b;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: Arial, "Microsoft YaHei", sans-serif;
+            background: linear-gradient(135deg, #eef3ff 0%, #f8fafc 48%, #eefdf5 100%);
+            color: #172033;
+            overflow: auto;
+        }
+
+        .page {
+            width: min(1680px, calc(100vw - 32px));
+            margin: 0 auto;
+            padding: 18px 0 20px;
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 18px;
+            margin-bottom: 14px;
+        }
+
+        .title-block h1 {
+            margin: 0;
+            font-size: 30px;
+            letter-spacing: 1px;
+            font-weight: 850;
+            color: #10203b;
+        }
+
+        .title-block p {
+            margin: 6px 0 0;
+            color: var(--text-sub);
+            font-size: 14px;
+        }
+
+        .runtime-panel {
+            display: flex;
+            align-items: stretch;
+            gap: 8px;
+            padding: 8px;
+            border-radius: 22px;
+            background: rgba(255, 255, 255, 0.84);
+            border: 1px solid var(--border);
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+            backdrop-filter: blur(10px);
+            white-space: nowrap;
+        }
+
+        .metric {
+            min-width: 92px;
+            padding: 7px 12px;
+            border-radius: 16px;
+            background: #f8fafc;
+            border: 1px solid #e5e7eb;
+        }
+
+        .metric span {
+            display: block;
+            margin-bottom: 3px;
+            font-size: 11px;
+            color: var(--text-sub);
+            letter-spacing: 0.5px;
+        }
+
+        .metric strong {
+            display: block;
+            font-size: 14px;
+            color: var(--text-main);
+            font-weight: 800;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 112px;
+            padding: 7px 12px;
+            border-radius: 16px;
+            border: 1px solid #e5e7eb;
+            background: #f8fafc;
+        }
+
+        .status-badge strong {
+            font-size: 14px;
+            font-weight: 850;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 999px;
+            background: #94a3b8;
+            box-shadow: 0 0 0 4px rgba(148, 163, 184, 0.16);
+        }
+
+        .status-badge.connected {
+            color: #166534;
+            background: #ecfdf3;
+            border-color: #bbf7d0;
+        }
+
+        .status-badge.connected .status-dot {
+            background: #22c55e;
+            box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.15);
+        }
+
+        .status-badge.disconnected {
+            color: #991b1b;
+            background: #fef2f2;
+            border-color: #fecaca;
+        }
+
+        .status-badge.disconnected .status-dot {
+            background: #ef4444;
+            box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.15);
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: minmax(720px, 1.75fr) minmax(390px, 0.85fr);
+            gap: 18px;
+            align-items: stretch;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.94);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 14px 18px;
+            min-height: 72px;
+            border-bottom: 1px solid #e5e7eb;
+            background: rgba(248, 250, 252, 0.9);
+        }
+
+        .card-title {
+            font-size: 17px;
+            font-weight: 850;
+            color: var(--text-main);
+        }
+
+        .card-subtitle {
+            margin-top: 3px;
+            color: var(--text-sub);
+            font-size: 13px;
+        }
+
+        .video-card {
+            height: var(--content-height);
+            min-height: 560px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .video-wrapper {
+            flex: 1;
+            width: 100%;
+            min-height: 0;
+            background: #0f172a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #cameraView {
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            background: #0f172a;
+        }
+
+        .side-panel {
+            height: var(--content-height);
+            min-height: 560px;
+            display: grid;
+            grid-template-rows: 340px 190px minmax(0, 1fr);
+            gap: 14px;
+        }
+
+        .side-panel > .card {
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .section {
+            padding: 14px 18px;
+        }
+
+        .operation-card .section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            gap: 10px;
+        }
+
+        .op-card {
+            border-radius: 16px;
+            border: 1px solid #e5e7eb;
+            background: #f8fafc;
+            padding: 12px 14px;
+        }
+
+        .op-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 9px;
+        }
+
+        .op-title {
+            font-size: 16px;
+            font-weight: 850;
+            color: var(--text-main);
+        }
+
+        .op-hint {
+            color: var(--text-sub);
+            font-size: 13px;
+        }
+
+        .op-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 104px;
+            gap: 10px;
+        }
+
+        select {
+            width: 100%;
+            height: 42px;
+            font-size: 15px;
+            padding: 0 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+            background: #fff;
+            color: #0f172a;
+            outline: none;
+        }
+
+        select:focus {
+            border-color: var(--blue);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+        }
+
+        button {
+            height: 42px;
+            font-size: 15px;
+            font-weight: 800;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            color: #fff;
+            transition: transform 0.08s ease, opacity 0.12s ease, box-shadow 0.12s ease;
+        }
+
+        button:hover:not(:disabled) {
+            box-shadow: 0 8px 18px rgba(15, 23, 42, 0.14);
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        button:disabled {
+            background: #94a3b8 !important;
+            cursor: not-allowed;
+            opacity: 0.75;
+        }
+
+        .btn-inbound {
+            background: var(--green);
+        }
+
+        .btn-outbound {
+            background: var(--blue);
+        }
+
+        #message {
+            min-height: 22px;
+            font-size: 14px;
+            font-weight: 800;
+        }
+
+        .ok {
+            color: #15803d;
+        }
+
+        .err {
+            color: #b91c1c;
+        }
+
+        .lists-card .section {
+            flex: 1;
+            min-height: 0;
+        }
+
+        .lists {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .list-box {
+            border-radius: 14px;
+            padding: 13px;
+            border: 1px solid #e5e7eb;
+            background: #ffffff;
+            min-height: 0;
+            overflow: auto;
+        }
+
+        .list-title {
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 850;
+            color: #334155;
+        }
+
+        .list-content {
+            line-height: 1.65;
+            font-size: 15px;
+            color: #0f172a;
+            word-break: break-word;
+        }
+
+        .status-card .section {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+        }
+
+        .grid {
+            flex: 1;
+            min-height: 0;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            grid-template-rows: repeat(4, 1fr);
+            gap: 8px;
+        }
+
+        .slot {
+            min-height: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 11px;
+            font-weight: 850;
+            font-size: 13px;
+            border: 1px solid transparent;
+            user-select: none;
+        }
+
+        .occupied {
+            background: #dcfce7;
+            color: #166534;
+            border-color: #86efac;
+        }
+
+        .empty {
+            background: #fee2e2;
+            color: #991b1b;
+            border-color: #fca5a5;
+        }
+
+        .unknown {
+            background: #e5e7eb;
+            color: #475569;
+            border-color: #cbd5e1;
+        }
+
+        .legend {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+            font-size: 13px;
+            color: var(--text-sub);
+        }
+
+        .legend-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .dot.occ {
+            background: #22c55e;
+        }
+
+        .dot.emp {
+            background: #ef4444;
+        }
+
+        .dot.unk {
+            background: #94a3b8;
+        }
+
+
+        @media (max-height: 820px) and (min-width: 1101px) {
+            .page {
+                padding-top: 12px;
+            }
+
+            .topbar {
+                margin-bottom: 10px;
+            }
+
+            .card-header {
+                min-height: 64px;
+                padding: 12px 16px;
+            }
+
+            .side-panel {
+                grid-template-rows: 330px 180px minmax(0, 1fr);
+                gap: 12px;
+            }
+
+            .section {
+                padding: 12px 16px;
+            }
+
+            .op-card {
+                padding: 11px 13px;
+            }
+        }
+
+        @media (max-width: 1100px) {
+            body {
+                overflow: auto;
+            }
+
+            .layout {
+                grid-template-columns: 1fr;
+            }
+
+            .video-card,
+            .side-panel {
+                height: auto;
+                min-height: 0;
+            }
+
+            .video-wrapper {
+                height: 58vw;
+                min-height: 360px;
+            }
+
+            .side-panel {
+                display: grid;
+                grid-template-rows: none;
+            }
+
+            .topbar {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .runtime-panel {
+                width: 100%;
+                flex-wrap: wrap;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .page {
+                width: calc(100vw - 18px);
+                padding-top: 12px;
+            }
+
+            .title-block h1 {
+                font-size: 23px;
+            }
+
+            .lists {
+                grid-template-columns: 1fr;
+            }
+
+            .grid {
+                grid-template-columns: repeat(4, 1fr);
+                grid-template-rows: none;
+            }
+
+            .op-row {
+                grid-template-columns: 1fr;
+            }
+
+            .metric,
+            .status-badge {
+                flex: 1 1 120px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+    <div class="topbar">
+        <div class="title-block">
+            <h1>智能制造工站视觉出入库系统</h1>
+            <p>实时检测工位空/非空状态，并向仓储 PLC 发送入库、出库指令</p>
+        </div>
+        <div class="runtime-panel" id="runtimePanel">
+            <div class="metric">
+                <span>更新时间</span>
+                <strong id="runtimeTime">--</strong>
+            </div>
+            <div class="metric">
+                <span>FPS</span>
+                <strong id="runtimeFps">--</strong>
+            </div>
+            <div class="status-badge disconnected" id="runtimePlc">
+                <span class="status-dot"></span>
+                <strong id="runtimePlcText">PLC 未连接</strong>
+            </div>
+        </div>
+    </div>
+
+    <div class="layout">
+        <div class="card video-card">
+            <div class="card-header">
+                <div>
+                    <div class="card-title">实时视觉检测画面</div>
+                    <div class="card-subtitle">YOLO 检测结果与 1~20 工位状态叠加显示</div>
+                </div>
+                <div class="legend">
+                    <span class="legend-item"><span class="dot occ"></span>有货</span>
+                    <span class="legend-item"><span class="dot emp"></span>空位</span>
+                    <span class="legend-item"><span class="dot unk"></span>未知</span>
+                </div>
+            </div>
+            <div class="video-wrapper">
+                <img id="cameraView" src="/video_feed" alt="实时视觉检测画面">
+            </div>
+        </div>
+
+        <div class="side-panel">
+            <div class="card operation-card">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">出入库操作</div>
+                        <div class="card-subtitle">入库只能选择空工位，出库只能选择非空工位</div>
+                    </div>
+                </div>
+                <div class="section">
+                    <div class="op-card">
+                        <div class="op-head">
+                            <div class="op-title">入库</div>
+                            <div class="op-hint">选择空工位</div>
+                        </div>
+                        <div class="op-row">
+                            <select id="inboundSelect"></select>
+                            <button class="btn-inbound" id="inboundBtn" onclick="sendCommand('inbound')">入库</button>
+                        </div>
+                    </div>
+
+                    <div class="op-card">
+                        <div class="op-head">
+                            <div class="op-title">出库</div>
+                            <div class="op-hint">选择非空工位</div>
+                        </div>
+                        <div class="op-row">
+                            <select id="outboundSelect"></select>
+                            <button class="btn-outbound" id="outboundBtn" onclick="sendCommand('outbound')">出库</button>
+                        </div>
+                    </div>
+
+                    <div id="message"></div>
+                </div>
+            </div>
+
+            <div class="card lists-card">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">当前可选工位</div>
+                        <div class="card-subtitle">由视觉检测结果实时更新</div>
+                    </div>
+                </div>
+                <div class="section lists">
+                    <div class="list-box">
+                        <div class="list-title">空工位（可入库）</div>
+                        <div class="list-content" id="emptyList">-</div>
+                    </div>
+                    <div class="list-box">
+                        <div class="list-title">非空工位（可出库）</div>
+                        <div class="list-content" id="occupiedList">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card status-card">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">1~20 工位状态</div>
+                        <div class="card-subtitle">绿色为有货，红色为空位</div>
+                    </div>
+                </div>
+                <div class="section">
+                    <div class="grid" id="slotGrid"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let lastStatus = null;
+    let pendingCommand = null;
+    let lastDoneSeq = 0;
+    let lastRawDoneState = { outbound: false, inbound: false };
+
+    function setMessage(text, ok) {
+        const msg = document.getElementById("message");
+        msg.innerText = text || "";
+        msg.className = ok ? "ok" : "err";
+    }
+
+    function fillSelect(selectId, list) {
+        const select = document.getElementById(selectId);
+        const oldValue = select.value;
+        select.innerHTML = "";
+
+        if (!list || list.length === 0) {
+            const opt = document.createElement("option");
+            opt.value = "";
+            opt.textContent = "无可选工位";
+            select.appendChild(opt);
+            select.disabled = true;
+            return;
+        }
+
+        select.disabled = false;
+        list.forEach(no => {
+            const opt = document.createElement("option");
+            opt.value = no;
+            opt.textContent = no + "号工位";
+            select.appendChild(opt);
+        });
+
+        if (list.map(String).includes(String(oldValue))) {
+            select.value = oldValue;
+        }
+    }
+
+    function renderGrid(occupied, empty) {
+        const grid = document.getElementById("slotGrid");
+        grid.innerHTML = "";
+
+        for (let i = 1; i <= 20; i++) {
+            const div = document.createElement("div");
+            div.classList.add("slot");
+
+            if (occupied.includes(i)) {
+                div.classList.add("occupied");
+                div.innerText = i + " 有货";
+            } else if (empty.includes(i)) {
+                div.classList.add("empty");
+                div.innerText = i + " 空";
+            } else {
+                div.classList.add("unknown");
+                div.innerText = i + " 未知";
+            }
+
+            grid.appendChild(div);
+        }
+    }
+
+    function updateRuntime(data) {
+        const timeEl = document.getElementById("runtimeTime");
+        const fpsEl = document.getElementById("runtimeFps");
+        const plcEl = document.getElementById("runtimePlc");
+        const plcTextEl = document.getElementById("runtimePlcText");
+
+        timeEl.innerText = data.timestamp || "--";
+        fpsEl.innerText = data.fps === null || data.fps === undefined ? "--" : Number(data.fps).toFixed(1);
+
+        if (data.plc_connected) {
+            plcEl.classList.remove("disconnected");
+            plcEl.classList.add("connected");
+            plcTextEl.innerText = "PLC 已连接";
+        } else {
+            plcEl.classList.remove("connected");
+            plcEl.classList.add("disconnected");
+            plcTextEl.innerText = "PLC 未连接";
+        }
+    }
+
+    function handleCompletion(data) {
+        // 优先使用后端保持的完成提示：显示后一直保留，直到下次点击入库/出库
+        if (data.done_message) {
+            const seq = Number(data.done_seq || 0);
+            if (seq !== lastDoneSeq || document.getElementById("message").innerText !== data.done_message) {
+                setMessage(data.done_message, true);
+                lastDoneSeq = seq;
+                pendingCommand = null;
+            }
+            return;
+        }
+
+        // 兼容旧后端：只返回 DB45.DBX12.2 / DB45.DBX12.3 时，用前端做简单保持
+        const outboundDone = !!data.outbound_done;
+        const inboundDone = !!data.inbound_done;
+
+        if (pendingCommand) {
+            if (pendingCommand.action === "outbound" && outboundDone && !lastRawDoneState.outbound) {
+                setMessage("出库完成：" + pendingCommand.stationNo + "号工位", true);
+                pendingCommand = null;
+            } else if (pendingCommand.action === "inbound" && inboundDone && !lastRawDoneState.inbound) {
+                setMessage("入库完成：" + pendingCommand.stationNo + "号工位", true);
+                pendingCommand = null;
+            }
+        }
+
+        lastRawDoneState.outbound = outboundDone;
+        lastRawDoneState.inbound = inboundDone;
+    }
+
+    async function loadStatus() {
+        try {
+            const res = await fetch("/api/status");
+            const data = await res.json();
+            lastStatus = data;
+
+            const empty = data.empty_shelves || [];
+            const occupied = data.occupied_shelves || [];
+
+            fillSelect("inboundSelect", empty);
+            fillSelect("outboundSelect", occupied);
+
+            document.getElementById("emptyList").innerText = empty.length ? empty.join(", ") : "无";
+            document.getElementById("occupiedList").innerText = occupied.length ? occupied.join(", ") : "无";
+
+            document.getElementById("inboundBtn").disabled = empty.length === 0;
+            document.getElementById("outboundBtn").disabled = occupied.length === 0;
+
+            renderGrid(occupied, empty);
+            updateRuntime(data);
+            handleCompletion(data);
+        } catch (e) {
+            document.getElementById("runtimeTime").innerText = "--";
+            document.getElementById("runtimeFps").innerText = "--";
+            const plcEl = document.getElementById("runtimePlc");
+            const plcTextEl = document.getElementById("runtimePlcText");
+            plcEl.classList.remove("connected");
+            plcEl.classList.add("disconnected");
+            plcTextEl.innerText = "后端未连接";
+        }
+    }
+
+    async function sendCommand(action) {
+        const selectId = action === "inbound" ? "inboundSelect" : "outboundSelect";
+        const stationNo = document.getElementById(selectId).value;
+
+        if (!stationNo) {
+            setMessage("没有可选工位", false);
+            return;
+        }
+
+        const actionText = action === "inbound" ? "入库" : "出库";
+        const confirmed = confirm("确认执行：" + actionText + " " + stationNo + "号工位？");
+        if (!confirmed) return;
+
+        pendingCommand = null;
+        setMessage("正在发送指令...", true);
+
+        try {
+            const res = await fetch("/api/command", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    action: action,
+                    station_no: parseInt(stationNo)
+                })
+            });
+
+            const data = await res.json();
+            setMessage(data.msg || "", data.ok);
+
+            if (data.ok) {
+                pendingCommand = {
+                    action: action,
+                    stationNo: parseInt(stationNo)
+                };
+            } else {
+                pendingCommand = null;
+            }
+        } catch (e) {
+            pendingCommand = null;
+            setMessage("发送失败：无法连接 Python 后端", false);
+        }
+    }
+
+    loadStatus();
+    setInterval(loadStatus, 1000);
+</script>
+</body>
+</html>

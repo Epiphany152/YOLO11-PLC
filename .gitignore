@@ -1,0 +1,26 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# IDE
+.vscode/
+.idea/
+
+# Runtime output
+results_test/
+runs/
+logs/
+*.log
+
+# Temporary files
+.DS_Store
+Thumbs.db
+
+# Local env / secret config
+.env
+plc通讯/.env
+
+# Cache
+.cache/
